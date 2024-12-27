@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.progress-track {
+  @apply relative h-4 bg-gray-100 rounded-full mb-8;
+}
+
+.progress-fill {
+  @apply absolute top-0 left-0 h-full rounded-full transition-all duration-500;
+}
+
+.checkpoint {
+  @apply absolute top-1/2;
+  transform: translateX(-50%);
+}
+
+.checkpoint-dot {
+  @apply absolute w-3 h-3 bg-white rounded-full border-2 border-gray-300;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  left: 50%;
+}
+
+.checkpoint-label {
+  @apply absolute left-1/2 -translate-x-1/2 text-gray-600 whitespace-nowrap;
+  font-size: 0.7rem;
+}
+
+.runner-info {
+  @apply flex items-center justify-between mb-2;
+}
+
+.runner-profile {
+  @apply flex items-center gap-3;
+}
+
+.runner-image {
+  @apply w-8 h-8 rounded-full border-2 border-white shadow-md;
+}
+
+.runner-controls {
+  @apply flex gap-2;
+}
+
+.control-button {
+  @apply px-3 py-1.5 rounded-md text-sm font-medium transition-colors;
+}
+
+.increase-button {
+  @apply bg-blue-500 text-white hover:bg-blue-600;
+}
+
+.decrease-button {
+  @apply bg-red-500 text-white hover:bg-red-600;
+}
+
+@media (max-width: 768px) {
+  .checkpoint-dot {
+    @apply w-2 h-2;
+  }
+  
+  .checkpoint-label {
+    font-size: 0.65rem;
+    max-width: 60px;
+    text-align: center;
+    overflow-wrap: break-word;
+  }
+}
