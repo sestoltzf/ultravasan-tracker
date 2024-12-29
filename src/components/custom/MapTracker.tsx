@@ -1,6 +1,6 @@
 // src/components/custom/MapTracker.tsx
-import React from 'react';
-import Image from 'next/image';
+import React from "react";
+import Image from "next/image";
 
 const checkpoints = [
   { name: "Sälen", distance: 0, x: 15.65, y: 59.93 },
@@ -48,9 +48,13 @@ const getRunnerOffset = (
   return shouldOffset ? { x: -10, y: -10 } : { x: 0, y: 0 };
 };
 
-const MapTracker = ({ runners }: { runners: { id: number; progress: number; image: string }[] }) => {
+const MapTracker = ({
+  runners,
+}: {
+  runners: { id: number; progress: number; image: string }[];
+}) => {
   return (
-    <div className="relative w-full" style={{ paddingBottom: '20%' }}>
+    <div className="relative w-full" style={{ paddingBottom: "20%" }}>
       <div className="absolute inset-0">
         <Image
           src="/images/map.jpg"
@@ -75,10 +79,10 @@ const MapTracker = ({ runners }: { runners: { id: number; progress: number; imag
               }}
             >
               <Image
-                src={runner.image || '/images/default-runner.png'}
+                src={runner.image || "/images/default-runner.png"}
                 alt={`Runner ${runner.id}`}
-                width={40}
-                height={40}
+                width={70}
+                height={70}
                 className="rounded-full border-2 border-white shadow-lg"
               />
             </div>

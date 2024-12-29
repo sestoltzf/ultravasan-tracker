@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MapTracker from "./MapTracker";
-import ActivityLog from "./ActivityLog";
+import { fetchActivities } from "@/services/airtable";
+import { Activity } from "@/types";
+import ActivityDetail from "./ActivityDetail";
 
 const COLORS = ["#497f6f", "#e19272"];
 
@@ -22,35 +23,45 @@ const CHECKPOINTS = [
 
 const UltraTracker = () => {
   const [runners, setRunners] = useState([
-    { id: 1, name: "Simon", progress: 22, image: "/images/profile1.png", color: COLORS[0] },
-    { id: 2, name: "Fredrik", progress: 22, image: "/images/profile2.png", color: COLORS[1] },
+    { id: 1, name: "Simon", progress: 0, image: "/images/profile1.png", color: COLORS[0] },
+    { id: 2, name: "Fredrik", progress: 0, image: "/images/profile2.png", color: COLORS[1] },
   ]);
 
-  const updateRunnerProgress = (id: number, change: number) => {
-    setRunners((prev) =>
-      prev.map((runner) => {
-        if (runner.id === id) {
-          let newProgress = Math.min(Math.max(runner.progress + change, 0), 92);
+  const [eventLog, setEventLog] = useState<{ id: string; activity: Activity }[]>([]);
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
+  const [showMoreComplete, setShowMoreComplete] = useState(false);
+  const [showMoreIncomplete, setShowMoreIncomplete] = useState(false);
 
-          const nextCheckpoint = CHECKPOINTS.find((cp) => cp.distance >= newProgress);
-          const prevCheckpoint = [...CHECKPOINTS].reverse().find((cp) => cp.distance <= newProgress);
+  const updateRunnerProgressBasedOnActivities = (fetchedActivities: Activity[]) => {
+    const updatedRunners = [...runners];
+    const newEventLog: { id: string; activity: Activity }[] = [];
 
-          if (change > 0 && nextCheckpoint && nextCheckpoint.distance - newProgress <= 2) {
-            newProgress = nextCheckpoint.distance;
-          } else if (change < 0 && prevCheckpoint && newProgress - prevCheckpoint.distance <= 2) {
-            newProgress = prevCheckpoint.distance;
-          }
-
-          return { ...runner, progress: newProgress };
+    fetchedActivities.forEach((activity) => {
+      const runnerIndex = updatedRunners.findIndex((r) => r.name === activity.runner);
+      if (runnerIndex !== -1) {
+        if (activity.status === "Complete") {
+          updatedRunners[runnerIndex].progress += 5; // Add progress for completed activities
         }
-        return runner;
-      })
-    );
+        newEventLog.push({ id: activity.id, activity });
+      }
+    });
+
+    setRunners(updatedRunners);
+    setEventLog(newEventLog);
   };
 
-  const getCurrentCheckpoint = (progress: number) => {
-    return [...CHECKPOINTS].reverse().find((cp) => cp.distance <= progress) || CHECKPOINTS[0];
-  };
+  useEffect(() => {
+    const loadActivities = async () => {
+      try {
+        const fetchedActivities = await fetchActivities();
+        updateRunnerProgressBasedOnActivities(fetchedActivities);
+      } catch (error) {
+        console.error("Error loading activities:", error);
+      }
+    };
+
+    loadActivities();
+  }, []);
 
   return (
     <Card className="w-screen min-h-screen border-0 rounded-none bg-white">
@@ -58,78 +69,125 @@ const UltraTracker = () => {
         <CardTitle>Ultravasan 90 - Progress Tracker</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <Tabs defaultValue="map" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="map">Karta</TabsTrigger>
-            <TabsTrigger value="activities">Logg</TabsTrigger>
-          </TabsList>
+        {/* Map */}
+        <div className="relative w-full bg-white">
+          <MapTracker runners={runners} />
+        </div>
 
-          <TabsContent value="map">
-            <div className="relative w-full bg-white">
-              <MapTracker runners={runners} />
-            </div>
-            <div className="p-4">
-              {runners.map((runner) => (
-                <div key={runner.id} className="mb-8">
-                  <div className="flex items-center gap-4">
-                    <img
-                      src={runner.image}
-                      alt={runner.name}
-                      className="w-12 h-12 rounded-full border-2 border-gray-300"
-                    />
-                    <div>
-                      <p className="font-medium">{runner.name}</p>
-                      <p className="text-sm text-gray-500">
-                        {getCurrentCheckpoint(runner.progress).name} - {runner.progress.toFixed(1)} km
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Progress-bar med checkpoints */}
-                  <div className="relative mt-4 h-4 bg-gray-200 rounded-full">
-                    <div
-                      className="absolute top-0 left-0 h-full rounded-full"
-                      style={{
-                        width: `${(runner.progress / 92) * 100}%`,
-                        backgroundColor: runner.color,
-                      }}
-                    />
-                    {CHECKPOINTS.map((checkpoint) => (
-                      <div
-                        key={checkpoint.name}
-                        className="absolute top-0 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-gray-500"
-                        style={{
-                          left: `${(checkpoint.distance / 92) * 100}%`,
-                          backgroundColor:
-                            checkpoint.distance <= runner.progress ? runner.color : "white",
-                        }}
-                      />
-                    ))}
-                  </div>
-
-                  <div className="flex justify-end gap-2 mt-2">
-                    <button
-                      onClick={() => updateRunnerProgress(runner.id, 5)}
-                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                      +5 km
-                    </button>
-                    <button
-                      onClick={() => updateRunnerProgress(runner.id, -5)}
-                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                    >
-                      -5 km
-                    </button>
-                  </div>
+        <div className="p-4 space-y-6">
+          {runners.map((runner) => (
+            <div key={runner.id} className="mb-8">
+              <div className="flex items-center gap-4">
+                <img
+                  src={runner.image}
+                  alt={runner.name}
+                  className="w-12 h-12 rounded-full border-2 border-gray-300 object-cover"
+                />
+                <div>
+                  <p className="font-medium">{runner.name}</p>
+                  <p className="text-sm text-gray-500">
+                    {CHECKPOINTS.find((cp) => cp.distance >= runner.progress)?.name || "Mora"} - {" "}
+                    {runner.progress.toFixed(1)} km
+                  </p>
                 </div>
-              ))}
-            </div>
-          </TabsContent>
+              </div>
 
-          <TabsContent value="activities">
-            <ActivityLog />
-          </TabsContent>
-        </Tabs>
+              <div className="relative mt-4 h-4 bg-gray-200 rounded-full">
+                <div
+                  className="absolute top-0 left-0 h-full rounded-full"
+                  style={{
+                    width: `${(runner.progress / 92) * 100}%`,
+                    backgroundColor: runner.color,
+                  }}
+                />
+              </div>
+
+              <div className="mt-4">
+                <h2 className="text-lg font-semibold">Händelser</h2>
+
+                <div className="mt-4">
+                  <h3 className="text-md font-medium text-green-600">Klara händelser</h3>
+                  {eventLog
+                    .filter(
+                      (log) =>
+                        log.activity.runner === runner.name &&
+                        log.activity.status === "Complete"
+                    )
+                    .slice(0, showMoreComplete ? undefined : 3)
+                    .map((log) => (
+                      <div key={log.id} className="mt-2">
+                        <p
+                          className="text-sm text-blue-500 underline cursor-pointer hover:text-blue-700"
+                          onClick={() =>
+                            setExpandedEventId((prev) => (prev === log.id ? null : log.id))
+                          }
+                        >
+                          {new Date(log.activity.date).toLocaleDateString("sv-SE")}: {log.activity.notes}
+                        </p>
+                        {expandedEventId === log.id && (
+                          <div className="mt-4">
+                            <ActivityDetail activity={log.activity} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  {eventLog.filter(
+                    (log) =>
+                      log.activity.runner === runner.name &&
+                      log.activity.status === "Complete"
+                  ).length > 3 && (
+                    <button
+                      onClick={() => setShowMoreComplete((prev) => !prev)}
+                      className="text-sm text-blue-500 mt-2 underline"
+                    >
+                      {showMoreComplete ? "Visa färre" : "Visa fler"}
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-6">
+                  <h3 className="text-md font-medium text-red-600">Ej klara händelser</h3>
+                  {eventLog
+                    .filter(
+                      (log) =>
+                        log.activity.runner === runner.name &&
+                        log.activity.status !== "Complete"
+                    )
+                    .slice(0, showMoreIncomplete ? undefined : 3)
+                    .map((log) => (
+                      <div key={log.id} className="mt-2">
+                        <p
+                          className="text-sm text-blue-500 underline cursor-pointer hover:text-blue-700"
+                          onClick={() =>
+                            setExpandedEventId((prev) => (prev === log.id ? null : log.id))
+                          }
+                        >
+                          {new Date(log.activity.date).toLocaleDateString("sv-SE")}: {log.activity.notes}
+                        </p>
+                        {expandedEventId === log.id && (
+                          <div className="mt-4">
+                            <ActivityDetail activity={log.activity} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  {eventLog.filter(
+                    (log) =>
+                      log.activity.runner === runner.name &&
+                      log.activity.status !== "Complete"
+                  ).length > 3 && (
+                    <button
+                      onClick={() => setShowMoreIncomplete((prev) => !prev)}
+                      className="text-sm text-blue-500 mt-2 underline"
+                    >
+                      {showMoreIncomplete ? "Visa färre" : "Visa fler"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

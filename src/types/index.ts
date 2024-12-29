@@ -8,8 +8,7 @@ export interface Activity {
     duration: string;
     notes: string;
     f24s_workout: boolean;
-    status: "Published" | "Draft";
-    checkpoint: string;
+    status: "Published" | "Draft" | "Complete";
     media: Array<{
       url: string;
       filename: string;
@@ -19,6 +18,7 @@ export interface Activity {
     mediaType: "Image" | "Video" | "Both" | "None";
     mediaDescription: string;
     location: string;
+    type?: string;
    }
    
    export interface Checkpoint {
@@ -27,7 +27,7 @@ export interface Activity {
     type: string;
     description: string;
     activities: string[];
-    status: "Not Started" | "In Progress" | "Completed";
+    status: "Not Started" | "In Progress" | "Complete";
    }
    
    export interface Comment {
@@ -35,5 +35,5 @@ export interface Activity {
     activityId: string; 
     comment: string;
     date: string;
-    status: "Published" | "Draft";
+    status: "Published" | "Draft" | "Complete";
    }

@@ -1,11 +1,16 @@
 // components/ActivityCard.tsx
-import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Activity } from '@/types/activity';
-import MediaDisplay from './MediaDisplay';
+import React from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Activity } from "@/types/activity";
+import MediaDisplay from "./MediaDisplay";
+import { useRouter } from "next/navigation";
 
 const ActivityCard = ({ activity }: { activity: Activity }) => {
-  console.log("Rendering ActivityCard with activity:", activity); // Logga aktivitet för felsökning
+  const router = useRouter();
+
+  const handleViewDetails = () => {
+    router.push(`/activity/${activity.id}`);
+  };
 
   return (
     <Card className="mb-4">
@@ -31,13 +36,15 @@ const ActivityCard = ({ activity }: { activity: Activity }) => {
       </CardHeader>
       <CardContent>
         <p className="whitespace-pre-line">{activity.notes}</p>
-        {/* MediaDisplay för att visa bilder och videor */}
         <MediaDisplay activity={activity} />
         <div className="mt-4 flex justify-between items-center">
           <div className="text-sm text-gray-500">
             Distance: {activity.distance} km
           </div>
-          <button className="text-sm bg-blue-500 text-white px-3 py-1 rounded-full hover:bg-blue-600">
+          <button
+            onClick={handleViewDetails}
+            className="text-sm bg-blue-500 text-white px-3 py-1 rounded-full hover:bg-blue-600"
+          >
             Se mer
           </button>
         </div>

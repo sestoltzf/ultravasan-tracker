@@ -1,58 +1,96 @@
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { fetchActivities } from "@/services/airtable";
+"use client";
+
+import React, { useState } from "react";
+import Image from "next/image";
 import { Activity } from "@/types";
+import Comments from "./Comments";
 
-const ActivityDetail = () => {
-  const router = useRouter();
-  const { id } = router.query;
+interface ActivityDetailProps {
+  activity: Activity;
+}
 
-  const [activity, setActivity] = useState<Activity | null>(null);
-
-  useEffect(() => {
-    const loadActivity = async () => {
-      try {
-        const allActivities = await fetchActivities();
-        const selectedActivity = allActivities.find((act) => act.id === id);
-        setActivity(selectedActivity || null);
-      } catch (error) {
-        console.error("Error loading activity:", error);
-      }
-    };
-
-    if (id) {
-      loadActivity();
-    }
-  }, [id]);
-
-  if (!activity) {
-    return <p>Laddar aktivitet...</p>;
-  }
+const ActivityDetail: React.FC<ActivityDetailProps> = ({ activity }) => {
+  // State för att hantera admin-läge
+  const [isAdmin, setIsAdmin] = useState(false);
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">{activity.runner}'s Aktivitet</h1>
-      <p><strong>Datum:</strong> {new Date(activity.date).toLocaleDateString()}</p>
-      <p><strong>Noteringar:</strong> {activity.notes}</p>
-      <p><strong>Distans:</strong> {activity.distance} km</p>
-      <p><strong>Varaktighet:</strong> {activity.duration}</p>
-      <p><strong>Status:</strong> {activity.status}</p>
-      {/* Lägg till bilder/video */}
-      {activity.media && activity.media.length > 0 && (
-        <div className="mt-4">
-          <h3 className="text-lg font-bold">Media</h3>
-          <div className="grid grid-cols-2 gap-4">
-            {activity.media.map((item, index) => (
-              <img
-                key={index}
-                src={item.url}
-                alt={item.filename}
-                className="rounded shadow"
-              />
-            ))}
+    <div className="p-4 bg-gray-50 rounded-lg shadow">
+      {/* Huvudinfo */}
+      <div className="text-center mb-6">
+        <h1 className="text-xl font-bold">{activity.runner}</h1>
+        <p className="text-gray-500 text-sm">
+          {activity.type || "Aktivitet"} - {new Date(activity.date).toLocaleDateString("sv-SE")}
+        </p>
+      </div>
+
+      {/* Media */}
+      <div className="relative w-full h-48 rounded-lg overflow-hidden">
+        {activity.mediaType === "Video" || activity.mediaType === "Both" ? (
+          <iframe
+            src={activity.videoURL.replace(
+              "youtube.com/watch?v=",
+              "youtube.com/embed/"
+            )}
+            className="absolute inset-0 w-full h-full"
+            allowFullScreen
+          />
+        ) : activity.media.length > 0 ? (
+          <Image
+            src={activity.media[0].url}
+            alt={activity.mediaDescription || "Media"}
+            layout="fill"
+            objectFit="cover"
+            className="rounded-lg"
+          />
+        ) : (
+          <div className="bg-gray-100 flex items-center justify-center h-full">
+            <p className="text-gray-400">Ingen media tillgänglig</p>
           </div>
-        </div>
+        )}
+      </div>
+
+      {/* Media-beskrivning */}
+      {activity.mediaDescription && (
+        <p className="mt-4 text-gray-600">{activity.mediaDescription}</p>
       )}
+
+      {/* Ytterligare detaljer */}
+      <div className="mt-6 space-y-3 text-sm text-gray-600">
+        <p>
+          <strong>Datum:</strong> {new Date(activity.date).toLocaleDateString("sv-SE")}
+        </p>
+        <p>
+          <strong>Distans:</strong> {activity.distance} km
+        </p>
+        <p>
+          <strong>Tid:</strong> {activity.duration} min
+        </p>
+        <p>
+          <strong>Anteckningar:</strong> {activity.notes}
+        </p>
+        {activity.location && (
+          <p>
+            <strong>Plats:</strong> {activity.location}
+          </p>
+        )}
+        {activity.f24s_workout && (
+          <p>
+            <strong>Typ:</strong> F24S Träning
+          </p>
+        )}
+      </div>
+
+      {/* Kommentarer */}
+      <div className="mt-6">
+        <h2 className="text-lg font-semibold">Kommentarer</h2>
+        <Comments
+          activityId={activity.id}
+          loggedInUserId={"exampleUser123"} // Ersätt detta med korrekt logik för inloggad användare
+          isAdmin={isAdmin} // Skickar adminstatus
+          adminKey={process.env.NEXT_PUBLIC_ADMIN_KEY || ""} // Miljövariabel för adminlösenord
+          setIsAdmin={setIsAdmin} // Skickar metoden för att ändra adminstatus
+        />
+      </div>
     </div>
   );
 };

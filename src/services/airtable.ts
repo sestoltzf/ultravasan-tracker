@@ -1,5 +1,6 @@
-import { Activity, Checkpoint, Comment } from "@/types";
+import { Activity } from "@/types";
 
+// Definition av Airtable-records
 interface AirtableRecord {
   id: string;
   fields: {
@@ -9,8 +10,7 @@ interface AirtableRecord {
     Duration?: string;
     Notes?: string;
     F24S_Workout?: boolean;
-    Status?: "Published" | "Draft" | "Not Started";
-    Checkpoint?: string;
+    Status?: "Published" | "Draft" | "Complete";
     Media?: Array<{ url: string; filename: string; type: string }>;
     VideoURL?: string;
     MediaType?: "Image" | "Video" | "Both" | "None";
@@ -25,6 +25,7 @@ interface AirtableRecord {
   };
 }
 
+// Funktion för att hämta aktiviteter från Airtable
 export const fetchActivities = async (): Promise<Activity[]> => {
   try {
     const response = await fetch("/api/activities");
@@ -34,23 +35,41 @@ export const fetchActivities = async (): Promise<Activity[]> => {
     const records: AirtableRecord[] = await response.json();
 
     if (!records || !Array.isArray(records)) {
-      console.error("Invalid response format:", records);
+      console.error("Invalid response format:", records); // Felsökningslog
       throw new Error("Unexpected response from Airtable API.");
     }
 
     return records.map(transformAirtableRecord);
   } catch (error) {
-    console.error("Error in fetchActivities:", error);
+    console.error("Error in fetchActivities:", error); // Felsökningslog
     throw error;
   }
 };
 
-const transformAirtableRecord = (record: AirtableRecord): Activity => {
-  if (!record.fields) {
-    console.error("Record fields are undefined:", record);
-    throw new Error("Missing fields in Airtable record.");
-  }
+// Funktion för att hämta en aktivitet baserat på ID
+export const fetchActivityById = async (id: string): Promise<Activity | null> => {
+  try {
+    const response = await fetch(`/api/activities/${id}`);
+    if (!response.ok) {
+      console.error(`Failed to fetch activity with ID ${id}:`, response.statusText);
+      return null;
+    }
+    const record: AirtableRecord = await response.json();
 
+    if (!record || !record.fields) {
+      console.error(`Invalid response for activity with ID ${id}:`, record);
+      return null;
+    }
+
+    return transformAirtableRecord(record);
+  } catch (error) {
+    console.error(`Error fetching activity with ID ${id}:`, error);
+    return null;
+  }
+};
+
+// Konverterar Airtable-records till `Activity`-objekt
+const transformAirtableRecord = (record: AirtableRecord): Activity => {
   const fields = record.fields;
 
   return {
@@ -62,7 +81,6 @@ const transformAirtableRecord = (record: AirtableRecord): Activity => {
     notes: fields.Notes || "",
     f24s_workout: fields.F24S_Workout || false,
     status: fields.Status || "Draft",
-    checkpoint: fields.Checkpoint || "",
     media: fields.Media || [],
     videoURL: fields.VideoURL || "",
     mediaType: fields.MediaType || "None",
@@ -71,78 +89,25 @@ const transformAirtableRecord = (record: AirtableRecord): Activity => {
   };
 };
 
-export const createActivity = async (activity: Partial<Activity>): Promise<Activity> => {
+// Funktion för att beräkna löpares progression baserat på aktiviteter
+export const getRunnerProgressFromActivities = async (): Promise<
+  { runner: string; progress: number }[]
+> => {
   try {
-    const response = await fetch("/api/activities", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(activity),
-    });
+    const activities = await fetchActivities();
+    const runnersProgress = activities.reduce<{ [runner: string]: number }>((acc, activity) => {
+      if ((activity.status === "Published" || activity.status === "Complete") && activity.runner) {
+        acc[activity.runner] = (acc[activity.runner] || 0) + activity.distance;
+      }
+      return acc;
+    }, {});
 
-    if (!response.ok) {
-      const errorResponse = await response.json();
-      throw new Error(
-        `Failed to create activity: ${errorResponse.message || response.statusText}`
-      );
-    }
-
-    const record: AirtableRecord = await response.json();
-    return transformAirtableRecord(record);
+    return Object.entries(runnersProgress).map(([runner, progress]) => ({
+      runner,
+      progress,
+    }));
   } catch (error) {
-    console.error("Error in createActivity:", error);
+    console.error("Error calculating runner progress:", error);
     throw error;
   }
-};
-
-export const fetchCheckpoints = async (): Promise<Checkpoint[]> => {
-  try {
-    const response = await fetch("/api/checkpoints");
-    if (!response.ok) {
-      throw new Error(`Failed to fetch checkpoints: ${response.statusText}`);
-    }
-    const records: AirtableRecord[] = await response.json();
-    return records.map(transformCheckpointRecord);
-  } catch (error) {
-    console.error("Error in fetchCheckpoints:", error);
-    throw error;
-  }
-};
-
-export const fetchComments = async (activityId: string): Promise<Comment[]> => {
-  try {
-    const response = await fetch(`/api/comments?activityId=${activityId}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch comments: ${response.statusText}`);
-    }
-    const records: AirtableRecord[] = await response.json();
-    return records.map(transformCommentRecord);
-  } catch (error) {
-    console.error("Error in fetchComments:", error);
-    throw error;
-  }
-};
-
-const transformCheckpointRecord = (record: AirtableRecord): Checkpoint => {
-  const fields = record.fields;
-  return {
-    id: record.id,
-    name: fields.Name || "",
-    type: fields.Type || "",
-    description: fields.Description || "",
-    activities: fields.Activities || [],
-    status: fields.Status || "Not Started"
-  };
-};
-
-const transformCommentRecord = (record: AirtableRecord): Comment => {
-  const fields = record.fields;
-  return {
-    id: record.id,
-    activityId: fields.ActivityId || "",
-    comment: fields.Comment || "",
-    date: fields.Date || "",
-    status: fields.Status || "Draft"
-  };
 };
