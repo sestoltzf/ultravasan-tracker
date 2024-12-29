@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import MapTracker from "./MapTracker";
 import { fetchActivities } from "@/services/airtable";
 import { Activity } from "@/types";
 import ActivityDetail from "./ActivityDetail";
+import Image from "next/image"; // Byt till Image-komponenten
 
 const COLORS = ["#497f6f", "#e19272"];
 
@@ -32,7 +33,7 @@ const UltraTracker = () => {
   const [showMoreComplete, setShowMoreComplete] = useState(false);
   const [showMoreIncomplete, setShowMoreIncomplete] = useState(false);
 
-  const updateRunnerProgressBasedOnActivities = (fetchedActivities: Activity[]) => {
+  const updateRunnerProgressBasedOnActivities = useCallback((fetchedActivities: Activity[]) => {
     const updatedRunners = [...runners];
     const newEventLog: { id: string; activity: Activity }[] = [];
 
@@ -48,7 +49,7 @@ const UltraTracker = () => {
 
     setRunners(updatedRunners);
     setEventLog(newEventLog);
-  };
+  }, [runners]);
 
   useEffect(() => {
     const loadActivities = async () => {
@@ -61,7 +62,7 @@ const UltraTracker = () => {
     };
 
     loadActivities();
-  }, []);
+  }, [updateRunnerProgressBasedOnActivities]);
 
   return (
     <Card className="w-screen min-h-screen border-0 rounded-none bg-white">
@@ -78,10 +79,12 @@ const UltraTracker = () => {
           {runners.map((runner) => (
             <div key={runner.id} className="mb-8">
               <div className="flex items-center gap-4">
-                <img
+                <Image
                   src={runner.image}
                   alt={runner.name}
-                  className="w-12 h-12 rounded-full border-2 border-gray-300 object-cover"
+                  width={48}
+                  height={48}
+                  className="rounded-full border-2 border-gray-300 object-cover"
                 />
                 <div>
                   <p className="font-medium">{runner.name}</p>

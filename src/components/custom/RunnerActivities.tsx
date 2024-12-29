@@ -7,14 +7,9 @@ import ActivityDetail from "./ActivityDetail";
 interface RunnerActivitiesProps {
   runner: string;
   activities: Activity[];
-  onActivityComplete: (activityId: number) => void;
 }
 
-const RunnerActivities: FC<RunnerActivitiesProps> = ({
-  runner,
-  activities,
-  onActivityComplete,
-}) => {
+const RunnerActivities: FC<RunnerActivitiesProps> = ({ runner, activities }) => {
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
 
   // Sortera aktiviteter efter datum (senaste först)
