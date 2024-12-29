@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import MapTracker from "./MapTracker";
 import { fetchActivities } from "@/services/airtable";
@@ -33,21 +34,21 @@ const UltraTracker = () => {
   const [showMoreIncomplete, setShowMoreIncomplete] = useState(false);
 
   const updateRunnerProgressBasedOnActivities = (fetchedActivities: Activity[]) => {
-    setRunners((prevRunners) => {
-      const updatedRunners = [...prevRunners];
-      fetchedActivities.forEach((activity) => {
-        const runnerIndex = updatedRunners.findIndex((r) => r.name === activity.runner);
-        if (runnerIndex !== -1 && activity.status === "Complete") {
-          updatedRunners[runnerIndex].progress += 5; // Öka progression bara en gång
+    const updatedRunners = [...runners];
+    const newEventLog: { id: string; activity: Activity }[] = [];
+
+    fetchedActivities.forEach((activity) => {
+      const runnerIndex = updatedRunners.findIndex((r) => r.name === activity.runner);
+      if (runnerIndex !== -1) {
+        if (activity.status === "Complete") {
+          updatedRunners[runnerIndex].progress += 5; // Add progress for completed activities
         }
-      });
-      return updatedRunners;
+        newEventLog.push({ id: activity.id, activity });
+      }
     });
 
-    setEventLog((prevEventLog) => {
-      const newEventLog = fetchedActivities.map((activity) => ({ id: activity.id, activity }));
-      return [...newEventLog];
-    });
+    setRunners(updatedRunners);
+    setEventLog(newEventLog);
   };
 
   useEffect(() => {
@@ -61,7 +62,6 @@ const UltraTracker = () => {
     };
 
     loadActivities();
-    // Se till att inte lägga till onödiga beroenden
   }, []);
 
   return (
@@ -79,15 +79,17 @@ const UltraTracker = () => {
           {runners.map((runner) => (
             <div key={runner.id} className="mb-8">
               <div className="flex items-center gap-4">
-                <img
+                <Image
                   src={runner.image}
                   alt={runner.name}
-                  className="w-12 h-12 rounded-full border-2 border-gray-300 object-cover"
+                  width={48}
+                  height={48}
+                  className="rounded-full border-2 border-gray-300 object-cover"
                 />
                 <div>
                   <p className="font-medium">{runner.name}</p>
                   <p className="text-sm text-gray-500">
-                    {CHECKPOINTS.find((cp) => cp.distance >= runner.progress)?.name || "Mora"} - {" "}
+                    {CHECKPOINTS.find((cp) => cp.distance >= runner.progress)?.name || "Mora"} -{" "}
                     {runner.progress.toFixed(1)} km
                   </p>
                 </div>
@@ -123,7 +125,8 @@ const UltraTracker = () => {
                             setExpandedEventId((prev) => (prev === log.id ? null : log.id))
                           }
                         >
-                          {new Date(log.activity.date).toLocaleDateString("sv-SE")}: {log.activity.notes}
+                          {new Date(log.activity.date).toLocaleDateString("sv-SE")}:{" "}
+                          {log.activity.notes}
                         </p>
                         {expandedEventId === log.id && (
                           <div className="mt-4">
@@ -163,7 +166,8 @@ const UltraTracker = () => {
                             setExpandedEventId((prev) => (prev === log.id ? null : log.id))
                           }
                         >
-                          {new Date(log.activity.date).toLocaleDateString("sv-SE")}: {log.activity.notes}
+                          {new Date(log.activity.date).toLocaleDateString("sv-SE")}:{" "}
+                          {log.activity.notes}
                         </p>
                         {expandedEventId === log.id && (
                           <div className="mt-4">
