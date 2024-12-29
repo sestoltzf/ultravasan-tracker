@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import MapTracker from "./MapTracker";
 import { fetchActivities } from "@/services/airtable";
 import { Activity } from "@/types";
 import ActivityDetail from "./ActivityDetail";
-import Image from "next/image"; // Byt till Image-komponenten
 
 const COLORS = ["#497f6f", "#e19272"];
 
@@ -33,23 +32,23 @@ const UltraTracker = () => {
   const [showMoreComplete, setShowMoreComplete] = useState(false);
   const [showMoreIncomplete, setShowMoreIncomplete] = useState(false);
 
-  const updateRunnerProgressBasedOnActivities = useCallback((fetchedActivities: Activity[]) => {
-    const updatedRunners = [...runners];
-    const newEventLog: { id: string; activity: Activity }[] = [];
-
-    fetchedActivities.forEach((activity) => {
-      const runnerIndex = updatedRunners.findIndex((r) => r.name === activity.runner);
-      if (runnerIndex !== -1) {
-        if (activity.status === "Complete") {
-          updatedRunners[runnerIndex].progress += 5; // Add progress for completed activities
+  const updateRunnerProgressBasedOnActivities = (fetchedActivities: Activity[]) => {
+    setRunners((prevRunners) => {
+      const updatedRunners = [...prevRunners];
+      fetchedActivities.forEach((activity) => {
+        const runnerIndex = updatedRunners.findIndex((r) => r.name === activity.runner);
+        if (runnerIndex !== -1 && activity.status === "Complete") {
+          updatedRunners[runnerIndex].progress += 5; // Öka progression bara en gång
         }
-        newEventLog.push({ id: activity.id, activity });
-      }
+      });
+      return updatedRunners;
     });
 
-    setRunners(updatedRunners);
-    setEventLog(newEventLog);
-  }, [runners]);
+    setEventLog((prevEventLog) => {
+      const newEventLog = fetchedActivities.map((activity) => ({ id: activity.id, activity }));
+      return [...newEventLog];
+    });
+  };
 
   useEffect(() => {
     const loadActivities = async () => {
@@ -62,7 +61,8 @@ const UltraTracker = () => {
     };
 
     loadActivities();
-  }, [updateRunnerProgressBasedOnActivities]);
+    // Se till att inte lägga till onödiga beroenden
+  }, []);
 
   return (
     <Card className="w-screen min-h-screen border-0 rounded-none bg-white">
@@ -79,12 +79,10 @@ const UltraTracker = () => {
           {runners.map((runner) => (
             <div key={runner.id} className="mb-8">
               <div className="flex items-center gap-4">
-                <Image
+                <img
                   src={runner.image}
                   alt={runner.name}
-                  width={48}
-                  height={48}
-                  className="rounded-full border-2 border-gray-300 object-cover"
+                  className="w-12 h-12 rounded-full border-2 border-gray-300 object-cover"
                 />
                 <div>
                   <p className="font-medium">{runner.name}</p>
