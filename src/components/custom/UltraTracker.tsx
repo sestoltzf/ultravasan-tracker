@@ -6,6 +6,7 @@ import MapTracker from "./MapTracker";
 import { fetchActivities } from "@/services/airtable";
 import { Activity } from "@/types";
 import ActivityDetail from "./ActivityDetail";
+import Image from "next/image";
 
 const COLORS = ["#497f6f", "#e19272"];
 
@@ -40,10 +41,9 @@ const UltraTracker = () => {
 
         const runnerIndex = updatedRunners.findIndex((r) => r.name === activity.runner);
         if (runnerIndex !== -1) {
-          if (activity.status === "Complete" && !activity.processed) {
+          if (activity.status === "Complete") {
             console.log(`Activity ID: ${activity.id}, Runner: ${activity.runner}, Adding 5km`);
             updatedRunners[runnerIndex].progress += 5;
-            activity.processed = true; // Lägg till en flagga
           } else {
             console.log(
               `Activity ID: ${activity.id}, Runner: ${activity.runner}, Status: ${activity.status} - Not complete`
@@ -57,7 +57,7 @@ const UltraTracker = () => {
       return updatedRunners;
     });
 
-    setEventLog((prevEventLog) => {
+    setEventLog(() => {
       const newEventLog = fetchedActivities.map((activity) => ({ id: activity.id, activity }));
       console.log("Updated Event Log:", newEventLog);
       return [...newEventLog];
@@ -94,9 +94,11 @@ const UltraTracker = () => {
           {runners.map((runner) => (
             <div key={runner.id} className="mb-8">
               <div className="flex items-center gap-4">
-                <img
+                <Image
                   src={runner.image}
                   alt={runner.name}
+                  width={48}
+                  height={48}
                   className="w-12 h-12 rounded-full border-2 border-gray-300 object-cover"
                 />
                 <div>
