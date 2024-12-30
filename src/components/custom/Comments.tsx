@@ -193,6 +193,8 @@ const Comments = ({
             {editingCommentId === comment.id ? (
               <form onSubmit={handleEditComment} className="mt-4">
                 <input
+                  id={`edit-comment-${comment.id}`}
+                  name="edit-comment"
                   type="text"
                   value={editedComment}
                   onChange={(e) => setEditedComment(e.target.value)}
@@ -216,6 +218,8 @@ const Comments = ({
       {/* Lägg till ny kommentar */}
       <form onSubmit={handleSubmitComment} className="mt-6 space-y-4">
         <input
+          id="author-name"
+          name="authorName"
           type="text"
           value={authorName}
           onChange={(e) => setAuthorName(e.target.value)}
@@ -224,6 +228,8 @@ const Comments = ({
         />
         <div className="flex gap-2">
           <input
+            id="new-comment"
+            name="newComment"
             type="text"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}

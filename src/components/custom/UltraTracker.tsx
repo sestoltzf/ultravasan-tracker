@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import MapTracker from "./MapTracker";
 import { fetchActivities } from "@/services/airtable";
@@ -34,27 +33,43 @@ const UltraTracker = () => {
   const [showMoreIncomplete, setShowMoreIncomplete] = useState(false);
 
   const updateRunnerProgressBasedOnActivities = (fetchedActivities: Activity[]) => {
-    const updatedRunners = [...runners];
-    const newEventLog: { id: string; activity: Activity }[] = [];
+    setRunners((prevRunners) => {
+      const updatedRunners = [...prevRunners];
+      fetchedActivities.forEach((activity) => {
+        console.log(`Processing Activity:`, activity);
 
-    fetchedActivities.forEach((activity) => {
-      const runnerIndex = updatedRunners.findIndex((r) => r.name === activity.runner);
-      if (runnerIndex !== -1) {
-        if (activity.status === "Complete") {
-          updatedRunners[runnerIndex].progress += 5; // Add progress for completed activities
+        const runnerIndex = updatedRunners.findIndex((r) => r.name === activity.runner);
+        if (runnerIndex !== -1) {
+          if (activity.status === "Complete" && !activity.processed) {
+            console.log(`Activity ID: ${activity.id}, Runner: ${activity.runner}, Adding 5km`);
+            updatedRunners[runnerIndex].progress += 5;
+            activity.processed = true; // Lägg till en flagga
+          } else {
+            console.log(
+              `Activity ID: ${activity.id}, Runner: ${activity.runner}, Status: ${activity.status} - Not complete`
+            );
+          }
+        } else {
+          console.log(`Runner ${activity.runner} not found in runners list.`);
         }
-        newEventLog.push({ id: activity.id, activity });
-      }
+      });
+      console.log("Updated Runners Progress:", updatedRunners);
+      return updatedRunners;
     });
 
-    setRunners(updatedRunners);
-    setEventLog(newEventLog);
+    setEventLog((prevEventLog) => {
+      const newEventLog = fetchedActivities.map((activity) => ({ id: activity.id, activity }));
+      console.log("Updated Event Log:", newEventLog);
+      return [...newEventLog];
+    });
   };
 
   useEffect(() => {
     const loadActivities = async () => {
+      console.log("Fetching activities...");
       try {
         const fetchedActivities = await fetchActivities();
+        console.log("Activities fetched:", fetchedActivities);
         updateRunnerProgressBasedOnActivities(fetchedActivities);
       } catch (error) {
         console.error("Error loading activities:", error);
@@ -79,17 +94,15 @@ const UltraTracker = () => {
           {runners.map((runner) => (
             <div key={runner.id} className="mb-8">
               <div className="flex items-center gap-4">
-                <Image
+                <img
                   src={runner.image}
                   alt={runner.name}
-                  width={48}
-                  height={48}
-                  className="rounded-full border-2 border-gray-300 object-cover"
+                  className="w-12 h-12 rounded-full border-2 border-gray-300 object-cover"
                 />
                 <div>
                   <p className="font-medium">{runner.name}</p>
                   <p className="text-sm text-gray-500">
-                    {CHECKPOINTS.find((cp) => cp.distance >= runner.progress)?.name || "Mora"} -{" "}
+                    {CHECKPOINTS.find((cp) => cp.distance >= runner.progress)?.name || "Mora"} - {" "}
                     {runner.progress.toFixed(1)} km
                   </p>
                 </div>
@@ -125,8 +138,7 @@ const UltraTracker = () => {
                             setExpandedEventId((prev) => (prev === log.id ? null : log.id))
                           }
                         >
-                          {new Date(log.activity.date).toLocaleDateString("sv-SE")}:{" "}
-                          {log.activity.notes}
+                          {new Date(log.activity.date).toLocaleDateString("sv-SE")}: {log.activity.notes}
                         </p>
                         {expandedEventId === log.id && (
                           <div className="mt-4">
@@ -166,8 +178,7 @@ const UltraTracker = () => {
                             setExpandedEventId((prev) => (prev === log.id ? null : log.id))
                           }
                         >
-                          {new Date(log.activity.date).toLocaleDateString("sv-SE")}:{" "}
-                          {log.activity.notes}
+                          {new Date(log.activity.date).toLocaleDateString("sv-SE")}: {log.activity.notes}
                         </p>
                         {expandedEventId === log.id && (
                           <div className="mt-4">
