@@ -34,15 +34,24 @@ const UltraTracker = () => {
   const [showMoreIncomplete, setShowMoreIncomplete] = useState(false);
 
   const updateRunnerProgressBasedOnActivities = (fetchedActivities: Activity[]) => {
+    const processedActivities = new Set<string>(); // För att hålla koll på behandlade aktivitet-ID:n
+
     setRunners((prevRunners) => {
       const updatedRunners = [...prevRunners];
       fetchedActivities.forEach((activity) => {
         console.log(`Processing Activity:`, activity);
 
+        if (processedActivities.has(activity.id)) {
+          console.log(`Skipping already processed activity ID: ${activity.id}`);
+          return; // Hoppa över redan bearbetade aktiviteter
+        }
+
         const runnerIndex = updatedRunners.findIndex((r) => r.name === activity.runner);
         if (runnerIndex !== -1) {
           if (activity.status === "Complete") {
-            console.log(`Activity ID: ${activity.id}, Runner: ${activity.runner}, Adding 5km`);
+            console.log(
+              `Activity ID: ${activity.id}, Runner: ${activity.runner}, Adding 5km. Current Progress: ${updatedRunners[runnerIndex].progress}`
+            );
             updatedRunners[runnerIndex].progress += 5;
           } else {
             console.log(
@@ -52,6 +61,8 @@ const UltraTracker = () => {
         } else {
           console.log(`Runner ${activity.runner} not found in runners list.`);
         }
+
+        processedActivities.add(activity.id); // Lägg till aktivitet-ID i set
       });
       console.log("Updated Runners Progress:", updatedRunners);
       return updatedRunners;
