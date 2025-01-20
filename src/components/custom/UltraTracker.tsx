@@ -96,6 +96,19 @@ const UltraTracker = () => {
         <CardTitle>Ultravasan 90 - Progress Tracker</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
+        {/* Fitness 24 Seven Collaboration */}
+        <div className="p-4 flex justify-center items-center bg-gray-100">
+          <a href="https://www.fitness24seven.com" target="_blank" rel="noopener noreferrer">
+            <Image
+              src="https://res.cloudinary.com/dwf8fxyve/image/upload/v1737362327/24-seven_logo_cmyk_2017_1_qswen2.png"
+              alt="Fitness 24 Seven Logo"
+              width={200}
+              height={50}
+              className="object-contain"
+            />
+          </a>
+        </div>
+
         {/* Map */}
         <div className="relative w-full bg-white">
           <MapTracker runners={runners} />
